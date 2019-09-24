@@ -7,15 +7,37 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.IO;
 
-namespace Crucigrama_PA
+namespace Crossword_PA
 {
-
     public partial class Form1 : Form
     {
+        Crossword c = new Crossword();
+
         public Form1()
         {
             InitializeComponent();
+            c.GetWords();
+            
+        }
+
+        private void startButton_Click(object sender, EventArgs e)
+        {
+            Random rnd = new Random();
+
+            if(radioFacil.Checked)
+            {
+                c.ConstructionAlgorithm(5);
+            }
+            else if (radioMedio.Checked)
+            {
+                c.ConstructionAlgorithm(rnd.Next(7, 15));
+            }
+            else
+            {
+                c.ConstructionAlgorithm(rnd.Next(10,20));
+            }
         }
     }
 
@@ -32,11 +54,10 @@ namespace Crucigrama_PA
         public Word(string _word)
         {
             length = _word.Length;
-            char[] indexedWord = new char[length + 2];
+            char[] indexedWord = new char[length + 1];
             indexedWord[0] = ' ';
-            indexedWord[length + 1] = '.';
             for (int i = 0; i < length; i++) indexedWord[i + 1] = _word[i];
-            length += 2; //Se ajusta el largo de la palabra tomando en cuenta que se agrego el id
+            length++; //Se ajusta el largo de la palabra tomando en cuenta que se agrego el id
             word = new String(indexedWord);
             validFlags = new List<bool>();
             for (int i = 0; i < length; i++)
@@ -44,7 +65,6 @@ namespace Crucigrama_PA
                 validFlags.Add(true);
             }
             validFlags[0] = false; //Quitamos la usabilidad de el caracter id
-            validFlags[length - 1] = false;
         }
         //Regresa un booleano que indica si la palabra tiene caracteres usables
         public bool IsUsable()
@@ -55,26 +75,6 @@ namespace Crucigrama_PA
                     return true;
             }
             return false;
-        }
-
-        //Regresa un lista con los caracteres usables de la palabra
-        public List<char> GetLetters()
-        {
-            List<char> letters = new List<char>();
-            for (int i = 0; i < length; i++)
-            {
-                if (validFlags[i])
-                    letters.Add(word[i]);
-            }
-            return letters;
-        }
-
-        public void AppendID(int ID)
-        {
-            char[] tempWord = word.ToArray();
-            tempWord[0] = Char.Parse(ID.ToString());
-            word = new String(tempWord);
-            id = ID;
         }
     };
 
@@ -104,7 +104,7 @@ namespace Crucigrama_PA
         public void DrawWord(Word firstWord)
         {
             Random rnd = new Random();
-            firstWord.AppendID(1);
+            firstWord.id = 1;
             firstWord.orientation = Convert.ToBoolean(rnd.Next(2));
             int mitad = Convert.ToInt32(firstWord.length / 2);
             int x = !firstWord.orientation ? (width / 2) : (width / 2 - mitad);
@@ -216,7 +216,7 @@ namespace Crucigrama_PA
             //Se asigna la posicion x,y a la palabra a insertar
             newWord.position = new Tuple<int, int>(x, y);
             contID++;
-            newWord.AppendID(contID);
+            newWord.id = contID;
             for (int i = 0; i < newWord.length; i++)
             {
                 grid[x][y] = newWord.word[i];
@@ -225,6 +225,7 @@ namespace Crucigrama_PA
                 else
                     y++;
             }
+
 
             //Activar las banderas de los caracteres utilizados y de los aledaños
 
@@ -243,27 +244,66 @@ namespace Crucigrama_PA
 
     class Crossword
     {
-        public List<Word> words; //Lista de palabras a utlizar 
-        List<string> clues; //Pistas de las palabras
+
+        public List<Word> words;
+        public List<string> clues; //Pistas de las palabras
+        public List<string> sortedClues;
         int level;
         public int contID;
-        Grid grid;
-        Crossword()
+        public Grid grid;
+        public Crossword()
         {
             grid = new Grid(20, 20);
             words = new List<Word>();
             contID = 1;
+            clues = new List<string>();
+            sortedClues = new List<string>();
         }
-        void GetWords() { }// Recupera las palabras de una base de datos o archivo
+        public void GetWords() // Recupera las palabras de una base de datos o archivo
+        {
+            StreamReader wordFile;
+
+            wordFile = File.OpenText("palabras.txt");
+            for (int i = 1; i <= 40; i++)
+            {
+                if (i % 2 == 1)
+                {
+                    Word a = new Word(wordFile.ReadLine()); //Falta try-catch                              !!!!!
+                    words.Add(a);
+                }
+                else
+                {
+                    clues.Add(wordFile.ReadLine());
+                }
+            }
+            wordFile.Close();
+        }
+
+
         void DrawCrossword() { } //Dibuja el crucigrama
         void DrawClues() { } //Dibuja las preguntas
 
         public void ConstructionAlgorithm(int nWords) //Algoritmo para seleccionar palabras y sus cruces
         {
+            /*
+            Word longestWord = words[0];
+            for (int i = 0; i < wordList.Count() -1; i++)
+            {
+                if (words[i].length < words[i + 1].length)
+                {
+                 longestWord = words[i + 1];
+                }
+            }
             words.Sort((Word x, Word y) => y.length - x.length); //Ordenamos el array por tamaños
+            */
+            //Lo comentado es una funcion opcinal que se encarga de que la palabra más grande se ponga en el centro
             Random rnd = new Random();
             Word firstWord = words[0];
             grid.DrawWord(firstWord); //Dibuja la palabra en el centro del grid
+
+            int posOrig = words.IndexOf(firstWord);
+            sortedClues.Add(clues[posOrig]);
+
             Word secondWord;
             words[0].used = true;
             bool allInserted = false;
@@ -319,6 +359,10 @@ namespace Crucigrama_PA
                 {
                     firstWord = secondWord;
                     tryCounter = 0;
+
+                    posOrig = words.IndexOf(secondWord);
+                    sortedClues.Add(clues[posOrig]);
+
                 }
                 //Significa que la palabra se inserto satisfactoriamente y se reinicia el tryCounter
                 else tryCounter++;//Si inserted es false, significa que el ciclo va a volver a correrse pero la primera
@@ -333,10 +377,6 @@ namespace Crucigrama_PA
                 }
             }
         }
-
-
-
-
-
     }
 }
+
