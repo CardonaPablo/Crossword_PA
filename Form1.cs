@@ -11,39 +11,123 @@ using System.IO;
 
 namespace Crossword_PA
 {
-    public partial class Form1 : Form
+    public partial class Form2 : Form
     {
-        Crossword c = new Crossword();
-
-        public Form1()
+        public Crossword c = new Crossword();
+        public Form2()
         {
             InitializeComponent();
-            c.GetWords();
             
+            c.GetWords();
+            switch(Program.level)
+            {
+                case 1:
+                c.ConstructionAlgorithm(5);
+                    break;
+                case 2:
+                    c.ConstructionAlgorithm(Program.rnd.Next(7, 15));
+                    break;
+                case 3:
+                default:
+                    c.ConstructionAlgorithm(Program.rnd.Next(10, 15));
+                    break;
+            }
+            
+            DrawCrossword();
+            DrawClues();
+
         }
 
-        private void startButton_Click(object sender, EventArgs e)
+        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
-            Random rnd = new Random();
 
-            if(radioFacil.Checked)
+        }
+
+        void DrawCrossword()
+        {
+            dataGridView1.Rows.Clear();
+            dataGridView1.Columns.Clear();
+            dataGridView1.BackgroundColor = Color.Black;
+            for (int j = 0; j < c.grid.grid[0].Count(); j++)
             {
-                c.ConstructionAlgorithm(5);
+                DataGridViewTextBoxColumn a = new DataGridViewTextBoxColumn();
+                a.FillWeight = 16;
+                a.Width = dataGridView1.Width / c.grid.grid[0].Count();
+                a.DefaultCellStyle.BackColor = Color.Black;
+                dataGridView1.Columns.Add(a);
             }
-            else if (radioMedio.Checked)
+
+            for (int i = 0; i < c.grid.grid.Count(); i++)
             {
-                c.ConstructionAlgorithm(rnd.Next(7, 15));
+                DataGridViewRow b = new DataGridViewRow();
+                b.Height = dataGridView1.Height / c.grid.grid.Count();
+                dataGridView1.Rows.Add(b);
             }
-            else
+
+            for (int i = 0; i < c.grid.grid.Count; i++)
             {
-                c.ConstructionAlgorithm(rnd.Next(10,20));
+                for (int j = 0; j < c.grid.grid[i].Count; j++)
+                {
+                    if (c.grid.grid[i][j] != ' ' )  DrawCell(i, j, c.grid.grid[i][j]);
+                }
             }
+
+            for (int i = 0; i < c.words.Count; i++)
+            {
+                if(c.words[i].id > 0)
+                {
+                    DrawCell(c.words[i].position.Item1, c.words[i].position.Item2, c.words[i].id);
+                }
+            }
+        }
+
+        private void DrawClues()
+        {
+            int yPosition = 64;
+            Label clueHolder = new Label();
+            clueHolder.Location = new Point(558, yPosition);
+
+            
+
+
+            for (int i = 0; i < c.sortedClues.Count(); i++)
+            {
+                /*Index of words where id es igual a la i+1*/
+                //bool clueOrientation = c.words[].orientation;
+                clueHolder = new Label();
+                clueHolder.Location = new Point(558, yPosition);
+                clueHolder.Text = c.sortedClues[i];
+                this.Controls.Add(clueHolder);
+                yPosition += 25;
+
+            }
+        }
+
+        private void DrawCell(int x, int y, char car)
+        {
+            DataGridViewCell c = dataGridView1[x, y];
+            c.Style.BackColor = Color.White;
+            c.Value = car;
+        }
+        private void DrawCell(int x, int y, int index)
+        {
+            DataGridViewCell c = dataGridView1[x, y];
+            c.Style.Font = new Font("Arial", 8.5F, GraphicsUnit.Pixel);
+            c.Style.BackColor = Color.SlateGray;
+            c.Value = index;
+        }
+
+        private void Form2_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            Form1 form1 = new Form1();
+            form1.Show();
         }
     }
 
-    class Word
+
+    public class Word
     {
-        public string word; //Almacena la palabra
+        public char[] word; //Almacena la palabra
         public int length; //Alamacena la longitud de la palabra
         public List<bool> validFlags; //Almacena las banderas para saber si se puede usar una letra
         public bool orientation; //true para Horizontal, false para vertical
@@ -54,17 +138,18 @@ namespace Crossword_PA
         public Word(string _word)
         {
             length = _word.Length;
-            char[] indexedWord = new char[length + 1];
-            indexedWord[0] = ' ';
-            for (int i = 0; i < length; i++) indexedWord[i + 1] = _word[i];
-            length++; //Se ajusta el largo de la palabra tomando en cuenta que se agrego el id
-            word = new String(indexedWord);
+            word = new char[length + 2];
+            word[0] = '#';
+            word[length - 1] = '.';
+            for (int i = 0; i < length; i++) word[i + 1] = _word[i];
+            length += 2; ; //Se ajusta el largo de la palabra tomando en cuenta que se agrego el id
             validFlags = new List<bool>();
             for (int i = 0; i < length; i++)
             {
                 validFlags.Add(true);
             }
             validFlags[0] = false; //Quitamos la usabilidad de el caracter id
+            validFlags[length - 1] = false;
         }
         //Regresa un booleano que indica si la palabra tiene caracteres usables
         public bool IsUsable()
@@ -78,7 +163,7 @@ namespace Crossword_PA
         }
     };
 
-    class Grid
+    public class Grid
     {
         public int height; // ↓
         public int width; // →
@@ -103,9 +188,8 @@ namespace Crossword_PA
 
         public void DrawWord(Word firstWord)
         {
-            Random rnd = new Random();
             firstWord.id = 1;
-            firstWord.orientation = Convert.ToBoolean(rnd.Next(2));
+            firstWord.orientation = Convert.ToBoolean(Program.rnd.Next(2));
             int mitad = Convert.ToInt32(firstWord.length / 2);
             int x = !firstWord.orientation ? (width / 2) : (width / 2 - mitad);
             int y = firstWord.orientation ? (height / 2) : (height / 2 - mitad);
@@ -242,18 +326,16 @@ namespace Crossword_PA
         }
     };
 
-    class Crossword
+    public class Crossword
     {
-
         public List<Word> words;
         public List<string> clues; //Pistas de las palabras
         public List<string> sortedClues;
-        int level;
         public int contID;
         public Grid grid;
         public Crossword()
         {
-            grid = new Grid(20, 20);
+            grid = new Grid(30, 30);
             words = new List<Word>();
             contID = 1;
             clues = new List<string>();
@@ -279,10 +361,6 @@ namespace Crossword_PA
             wordFile.Close();
         }
 
-
-        void DrawCrossword() { } //Dibuja el crucigrama
-        void DrawClues() { } //Dibuja las preguntas
-
         public void ConstructionAlgorithm(int nWords) //Algoritmo para seleccionar palabras y sus cruces
         {
             /*
@@ -297,15 +375,14 @@ namespace Crossword_PA
             words.Sort((Word x, Word y) => y.length - x.length); //Ordenamos el array por tamaños
             */
             //Lo comentado es una funcion opcinal que se encarga de que la palabra más grande se ponga en el centro
-            Random rnd = new Random();
-            Word firstWord = words[0];
+            Word firstWord = words[Program.rnd.Next(words.Count())];
             grid.DrawWord(firstWord); //Dibuja la palabra en el centro del grid
 
             int posOrig = words.IndexOf(firstWord);
             sortedClues.Add(clues[posOrig]);
 
             Word secondWord;
-            words[0].used = true;
+            firstWord.used = true;
             bool allInserted = false;
             //Se debe crear un ciclo que recorra a todas las palabras y que asigne a la ultima palabra
             //el estatus de padre, pero que si el ciclo para asiganrle falle, pueda seleccionar otra
@@ -317,19 +394,19 @@ namespace Crossword_PA
             //supera el numero de palabras *2, se cambia la palabra padre por una de las anteriormente
             //insertadas buscando que encaje ahi
             int tryCounter = 0;
-            while (!allInserted && contID <= nWords)
+            while (!allInserted && contID <= nWords -1)
             {
                 if (tryCounter > words.Count * 2)
                 {
                     do
                     {
-                        firstWord = words[rnd.Next(0, words.Count)];
+                        firstWord = words[Program.rnd.Next(0, words.Count)];
                     } while (!(firstWord.used && firstWord.IsUsable()));
                     tryCounter = 0;
                 }
                 do
                 {
-                    secondWord = words[rnd.Next(0, words.Count)];
+                    secondWord = words[Program.rnd.Next(0, words.Count)];
                 } while (secondWord.used || firstWord.Equals(secondWord));
 
 
@@ -376,6 +453,28 @@ namespace Crossword_PA
                     if (!word.used) allInserted = false;
                 }
             }
+
+            for (int i = 0; i < words.Count(); i++)
+            {
+                if (words[i].used)
+                {
+                    int x = words[i].position.Item1;
+                    int y = words[i].position.Item2;
+
+                    if (words[i].orientation)
+                    {
+                        x += words[i].length - 1;
+                        grid.grid[x][y] = '0';
+                    }
+                    else
+                    {
+                        y += words[i].length - 1;
+                        grid.grid[x][y] = ' ';
+                    }
+                }
+            }
+
+
         }
     }
 }
