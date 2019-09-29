@@ -17,29 +17,23 @@ namespace Crossword_PA
         public Form2()
         {
             InitializeComponent();
-            
             c.GetWords();
-            switch(Program.level)
+            switch (Program.level)
             {
                 case 1:
                 c.ConstructionAlgorithm(5);
                     break;
                 case 2:
-                    c.ConstructionAlgorithm(Program.rnd.Next(7, 15));
+                    c.ConstructionAlgorithm(Program.rnd.Next(7, 20));
                     break;
                 case 3:
                 default:
-                    c.ConstructionAlgorithm(Program.rnd.Next(10, 15));
+                    c.ConstructionAlgorithm(Program.rnd.Next(10, 20));
                     break;
             }
-            
+           
             DrawCrossword();
             DrawClues();
-
-        }
-
-        private void dataGridView1_CellContentClick(object sender, DataGridViewCellEventArgs e)
-        {
 
         }
 
@@ -47,13 +41,13 @@ namespace Crossword_PA
         {
             dataGridView1.Rows.Clear();
             dataGridView1.Columns.Clear();
-            dataGridView1.BackgroundColor = Color.Black;
             for (int j = 0; j < c.grid.grid[0].Count(); j++)
             {
                 DataGridViewTextBoxColumn a = new DataGridViewTextBoxColumn();
                 a.FillWeight = 16;
+                a.MaxInputLength = 1;
+                a.DefaultCellStyle.BackColor = Color.White;
                 a.Width = dataGridView1.Width / c.grid.grid[0].Count();
-                a.DefaultCellStyle.BackColor = Color.Black;
                 dataGridView1.Columns.Add(a);
             }
 
@@ -68,46 +62,57 @@ namespace Crossword_PA
             {
                 for (int j = 0; j < c.grid.grid[i].Count; j++)
                 {
-                    if (c.grid.grid[i][j] != ' ' )  DrawCell(i, j, c.grid.grid[i][j]);
+                    DrawCell(j, i,c.grid.grid[i][j]);
                 }
             }
 
             for (int i = 0; i < c.words.Count; i++)
             {
-                if(c.words[i].id > 0)
+                if (c.words[i].id > 0)
                 {
-                    DrawCell(c.words[i].position.Item1, c.words[i].position.Item2, c.words[i].id);
+                    DrawCell(c.words[i].position.Item2, c.words[i].position.Item1, c.words[i].id);
                 }
             }
+
         }
 
         private void DrawClues()
         {
-            int yPosition = 64;
-            Label clueHolder = new Label();
-            clueHolder.Location = new Point(558, yPosition);
-
-            
-
-
+            int yPositionH = 68;
+            int yPositionV = 295;
             for (int i = 0; i < c.sortedClues.Count(); i++)
             {
-                /*Index of words where id es igual a la i+1*/
-                //bool clueOrientation = c.words[].orientation;
-                clueHolder = new Label();
-                clueHolder.Location = new Point(558, yPosition);
-                clueHolder.Text = c.sortedClues[i];
-                this.Controls.Add(clueHolder);
-                yPosition += 25;
+                Word correspondiente = c.words.Find((Word x) =>
+                {
+                    if (x.id == i + 1) return true;
+                    else return false;
+                });
+                Label clueHolder = new Label();
+                clueHolder.Width = 500;
+                if (correspondiente.orientation)
+                {
+                    yPositionH += 21;
+                    clueHolder.Location = new Point(500, yPositionH);
+                }
+                else
+                { 
+                    yPositionV += 21;
+                    clueHolder.Location = new Point(500, yPositionV);
+                }
 
+                clueHolder.Text = $"{correspondiente.id.ToString()}. {c.sortedClues[i]}";
+                this.Controls.Add(clueHolder);
             }
         }
 
         private void DrawCell(int x, int y, char car)
         {
             DataGridViewCell c = dataGridView1[x, y];
-            c.Style.BackColor = Color.White;
+            if (car == ' ') 
+            { 
+            c.Style.BackColor = Color.Black;
             c.Value = car;
+            }
         }
         private void DrawCell(int x, int y, int index)
         {
@@ -121,6 +126,34 @@ namespace Crossword_PA
         {
             Form1 form1 = new Form1();
             form1.Show();
+        }
+
+        private void dificultadBtn_Click(object sender, EventArgs e)
+        {
+            this.Close();
+        }
+
+
+        private void revisarBtn_Click(object sender, EventArgs e)
+        {
+            bool correct = true;
+            for (int i = 0; i < dataGridView1.RowCount; i++)
+            {
+                for (int j = 0; j < dataGridView1.ColumnCount; j++)
+                {
+                    char cell = Convert.ToChar(dataGridView1.Rows[i].Cells[j].Value);
+                    char s = c.grid.grid[i][j];
+                    if (cell != ' ' && cell != s && s != '#')
+                        correct = false;
+                }
+            }
+            if (correct)
+            {
+                MessageBox.Show("Correcto :)");
+                Close();
+            }
+            else
+                MessageBox.Show("Intenta de Nuevo");
         }
     }
 
@@ -137,6 +170,7 @@ namespace Crossword_PA
 
         public Word(string _word)
         {
+            _word = _word.ToLower();
             length = _word.Length;
             word = new char[length + 2];
             word[0] = '#';
@@ -244,46 +278,36 @@ namespace Crossword_PA
 
             for (int i = -1; i <= newWord.length; i++)
             {
-                if (!(x1 < 0 || y1 < 0))
+                if (!(x1 < 0 || y1 < 0) && grid[x1][y1] != ' ')
                 {
-                    if (grid[x1][y1] != ' ')
+                    if (i != -1 && i < newWord.length)
                     {
-                        if (i != -1 && i < newWord.length)
-                        {
 
-                            if (grid[x1][y1] == newWord.word[newIndex] && i == newIndex /*|| grid[x1][y1] == newWord.word[i] && newWord.validFlags[i]*/) //Esto es un funcion que permite                                                                    
-                            {                                                                                                                            //el cruce entre varias palabras si la letra lo permite
-                                if (newWord.orientation)
-                                    x1++;
-                                else
-                                    y1++;
-                            }
+                        if (grid[x1][y1] == newWord.word[newIndex] && i == newIndex /*|| grid[x1][y1] == newWord.word[i] && newWord.validFlags[i]*/) //Esto es un funcion que permite                                                                    
+                        {                                                                                                                            //el cruce entre varias palabras si la letra lo permite
+                            if (newWord.orientation)
+                                x1++;
                             else
-                            {
-                                return false;
-                            }
+                                y1++;
                         }
                         else
                         {
-                            if (grid[x1][y1] == newWord.word[newIndex])
-                            {
-                                if (newWord.orientation)
-                                    x1++;
-                                else
-                                    y1++;
-                            }
-                            else
-                            {
-                                return false;
-                            }
+                            return false;
                         }
                     }
                     else
                     {
-                        if (newWord.orientation)
-                            x1++;
+                        if (grid[x1][y1] == newWord.word[newIndex])
+                        {
+                            if (newWord.orientation)
+                                x1++;
+                            else
+                                y1++;
+                        }
                         else
-                            y1++;
+                        {
+                            return false;
+                        }
                     }
                 }
                 else
@@ -321,7 +345,6 @@ namespace Crossword_PA
             newWord.validFlags[newIndex - 1] = false;
             if (newIndex != newWord.length - 1) //Si es el ultimo caracter se omite la bandera +1 para no
                 newWord.validFlags[newIndex + 1] = false; //salir del rango de la lista
-
             return true; //Se retorna un true indicando que si se pudo insertar la palabra
         }
     };
@@ -363,19 +386,13 @@ namespace Crossword_PA
 
         public void ConstructionAlgorithm(int nWords) //Algoritmo para seleccionar palabras y sus cruces
         {
-            /*
-            Word longestWord = words[0];
-            for (int i = 0; i < wordList.Count() -1; i++)
+            //words.Sort((Word x, Word y) => y.length - x.length); //Ordenamos el array por 
+            Word firstWord = words[0];
+            foreach (var word in words)
             {
-                if (words[i].length < words[i + 1].length)
-                {
-                 longestWord = words[i + 1];
-                }
+                if (word.length > firstWord.length)
+                    firstWord = word;
             }
-            words.Sort((Word x, Word y) => y.length - x.length); //Ordenamos el array por tamaños
-            */
-            //Lo comentado es una funcion opcinal que se encarga de que la palabra más grande se ponga en el centro
-            Word firstWord = words[Program.rnd.Next(words.Count())];
             grid.DrawWord(firstWord); //Dibuja la palabra en el centro del grid
 
             int posOrig = words.IndexOf(firstWord);
@@ -385,25 +402,58 @@ namespace Crossword_PA
             firstWord.used = true;
             bool allInserted = false;
             //Se debe crear un ciclo que recorra a todas las palabras y que asigne a la ultima palabra
-            //el estatus de padre, pero que si el ciclo para asiganrle falle, pueda seleccionar otra
+            //el estatus de padre, pero que si el ciclo para asiganarle falle, pueda seleccionar otra
             //palabra sin problema
-
-
             //Que pasa si una palabra no coincide con niguna otra palabra en ningun caracter?
             // Se crea un contador que cuenta cuantas veces se trata de insertar una palabra, si
             //supera el numero de palabras *2, se cambia la palabra padre por una de las anteriormente
             //insertadas buscando que encaje ahi
             int tryCounter = 0;
+            int worstCaseCounter = 0;
             while (!allInserted && contID <= nWords -1)
             {
                 if (tryCounter > words.Count * 2)
                 {
-                    do
-                    {
-                        firstWord = words[Program.rnd.Next(0, words.Count)];
-                    } while (!(firstWord.used && firstWord.IsUsable()));
-                    tryCounter = 0;
+                    if (tryCounter < 60) {
+                        do
+                        {
+                            firstWord = words[Program.rnd.Next(0, words.Count)];
+                        } while (!(firstWord.used && firstWord.IsUsable()));
+                        tryCounter = 0;
+                        worstCaseCounter++;
+                    }
                 }
+
+                if (worstCaseCounter > 10)
+                { 
+                    //Durante la fase de pruebas hay algunas veces en las que las palabras se acomodan 
+                    //de una manera en la que no entra ninguna otra
+                    //esto es el ultimo recurso, si no encuentra ningun espacio
+                    //pone todo como empezó y vuelve a llamar a la función
+                    for (int i = 0; i < words.Count(); i++)
+                    {
+                        words[i].used = false;
+                        for (int j = 1; j < words[i].validFlags.Count() - 1; j++)
+                        {
+                            words[i].validFlags[j] = true;
+                        }
+                        words[i].id = 0;
+                    }
+
+                    for (int i = 0; i < grid.grid.Count(); i++)
+                    {
+                        for (int j = 0; j < grid.grid[i].Count(); j++)
+                        {
+                            grid.grid[i][j] = ' ';
+                        }
+                    }
+                    sortedClues.Clear();
+                    contID = 1;
+                    ConstructionAlgorithm(nWords);
+                    return;
+                }
+
+
                 do
                 {
                     secondWord = words[Program.rnd.Next(0, words.Count)];
@@ -434,11 +484,12 @@ namespace Crossword_PA
                 }
                 if (inserted)
                 {
-                    firstWord = secondWord;
-                    tryCounter = 0;
 
                     posOrig = words.IndexOf(secondWord);
                     sortedClues.Add(clues[posOrig]);
+                    firstWord = secondWord;
+                    tryCounter = 0;
+
 
                 }
                 //Significa que la palabra se inserto satisfactoriamente y se reinicia el tryCounter
@@ -458,24 +509,11 @@ namespace Crossword_PA
             {
                 if (words[i].used)
                 {
-                    int x = words[i].position.Item1;
-                    int y = words[i].position.Item2;
-
-                    if (words[i].orientation)
-                    {
-                        x += words[i].length - 1;
-                        grid.grid[x][y] = '0';
-                    }
-                    else
-                    {
-                        y += words[i].length - 1;
-                        grid.grid[x][y] = ' ';
-                    }
+                    int x = words[i].position.Item1 + (words[i].orientation ? words[i].length - 1 : 0);
+                    int y = words[i].position.Item2 + (!words[i].orientation ? words[i].length - 1 : 0);
+                    grid.grid[x][y] = ' ';
                 }
             }
-
-
         }
     }
 }
-
