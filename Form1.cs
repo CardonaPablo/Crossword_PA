@@ -21,7 +21,7 @@ namespace Crossword_PA
             switch (Program.level)
             {
                 case 1:
-                c.ConstructionAlgorithm(5);
+                    c.ConstructionAlgorithm(5);
                     break;
                 case 2:
                     c.ConstructionAlgorithm(Program.rnd.Next(7, 20));
@@ -31,7 +31,7 @@ namespace Crossword_PA
                     c.ConstructionAlgorithm(Program.rnd.Next(10, 20));
                     break;
             }
-           
+
             DrawCrossword();
             DrawClues();
 
@@ -62,7 +62,7 @@ namespace Crossword_PA
             {
                 for (int j = 0; j < c.grid.grid[i].Count; j++)
                 {
-                    DrawCell(j, i,c.grid.grid[i][j]);
+                    DrawCell(j, i, c.grid.grid[i][j]);
                 }
             }
 
@@ -89,13 +89,13 @@ namespace Crossword_PA
                 });
                 Label clueHolder = new Label();
                 clueHolder.Width = 500;
-                if (correspondiente.orientation)
+                if (!correspondiente.orientation)
                 {
                     yPositionH += 21;
                     clueHolder.Location = new Point(500, yPositionH);
                 }
                 else
-                { 
+                {
                     yPositionV += 21;
                     clueHolder.Location = new Point(500, yPositionV);
                 }
@@ -108,10 +108,11 @@ namespace Crossword_PA
         private void DrawCell(int x, int y, char car)
         {
             DataGridViewCell c = dataGridView1[x, y];
-            if (car == ' ') 
-            { 
-            c.Style.BackColor = Color.Black;
-            c.Value = car;
+            if (car == ' ')
+            {
+                c.Style.BackColor = Color.Black;
+                c.Value = car;
+                c.ReadOnly = true;
             }
         }
         private void DrawCell(int x, int y, int index)
@@ -120,6 +121,7 @@ namespace Crossword_PA
             c.Style.Font = new Font("Arial", 8.5F, GraphicsUnit.Pixel);
             c.Style.BackColor = Color.SlateGray;
             c.Value = index;
+            c.ReadOnly = true;
         }
 
         private void Form2_FormClosed(object sender, FormClosedEventArgs e)
@@ -149,14 +151,13 @@ namespace Crossword_PA
             }
             if (correct)
             {
-                MessageBox.Show("Correcto :)");
+                MessageBox.Show("Felicidades!!!! Todo está correcto :)");
                 Close();
             }
             else
-                MessageBox.Show("Intenta de Nuevo");
+                MessageBox.Show("Algo esta mal, intenta de Nuevo :(");
         }
     }
-
 
     public class Word
     {
@@ -366,22 +367,84 @@ namespace Crossword_PA
         }
         public void GetWords() // Recupera las palabras de una base de datos o archivo
         {
-            StreamReader wordFile;
-
-            wordFile = File.OpenText("palabras.txt");
-            for (int i = 1; i <= 40; i++)
+            try
             {
-                if (i % 2 == 1)
+                StreamReader wordFile;
+
+                wordFile = File.OpenText("palabras.txt");
+                for (int i = 1; i <= 40; i++)
                 {
-                    Word a = new Word(wordFile.ReadLine()); //Falta try-catch                              !!!!!
-                    words.Add(a);
+                    if (i % 2 == 1)
+                    {
+                        Word a = new Word(wordFile.ReadLine()); //Falta try-catch                              !!!!!
+                        words.Add(a);
+                    }
+                    else
+                    {
+                        clues.Add(wordFile.ReadLine());
+                    }
                 }
-                else
-                {
-                    clues.Add(wordFile.ReadLine());
-                }
+                wordFile.Close();
             }
-            wordFile.Close();
+            catch(FileNotFoundException e)
+            {
+                MessageBox.Show("No se encontró el archivo, utilizando palabras por defecto");
+                string[] palabras = new string[] {
+                    "Mintonette",
+                    "Nombre original del Voleibol.",
+                    "ymca",
+                    "Siglas de la universidad donde se inventa el Voleibol.",
+                    "libero",
+                    "Posicion en voleibol cuya especialidad es la defensa.",
+                    "remate",
+                    "En voleibol, movimiento de ataque mas comun.",
+                    "set",
+                    "Conjunto de 25 puntos en voleibol.",
+                    "saque",
+                    "Movimiento que da inicio a un punto o rally.",
+                    "bloquear",
+                    "Accion de parar un ataque del equipo contrario por encima de la red.",
+                    "linea",
+                    "El arbitro de _____ es el encargado de determinar si un punto cae dentro de la cancha.",
+                    "fivb",
+                    "Siglas de la organizacion mundial encargada de regular las normas del Voleibol.",
+                    "zaguero",
+                    "Se le llama ataque de _______ al que se realiza detras de la linea de 3 metros.",
+                    "playa",
+                    "El voleibol de _____ se juega sobre arena y con dos jugadores.",
+                    "antenas",
+                    "(pl.) Varillas de 80 cm a cada lado de la red y sirven como delimitacion de la zona de juego sobre la red.",
+                    "rotacion",
+                    "Movimiento en sentido de las manecillas del reloj que se realiza cuando se arrebata el saque al contrario.",
+                    "red",
+                    "Se encuentra exactamente en el centro de la cancha dividiendo las areas de cada equipo.",
+                    "tres",
+                    "Numero maximo de toques que puede dar un equipo antes de pasar el balon.",
+                    "sentado",
+                    "El voleibol _______ es una variante con popularidad entre los deportes para discapacitados.",
+                    "punto",
+                    "Asi se le llama a una anotacion de un equipo.",
+                    "tiempos",
+                    "Cada equipo puede solicitar hasta dos _______ de descanso de 30 segundos en cada set.",
+                    "muerta",
+                    "Cuando un punto es incierto y se repite, se le conoce como bola ______.",
+                    "cambio",
+                    "(sus.)Se le llama ______ a sacar a un jugador en cancha y reemplazarlo por otro. Se tienen 6 maximo por set"
+                };
+                for (int i = 1; i <= 40; i++)
+                {
+                    if (i % 2 == 1)
+                    {
+                        Word a = new Word(palabras[i]); //Falta try-catch                              !!!!!
+                        words.Add(a);
+                    }
+                    else
+                    {
+                        clues.Add(palabras[i]);
+                    }
+                }
+
+            }
         }
 
         public void ConstructionAlgorithm(int nWords) //Algoritmo para seleccionar palabras y sus cruces
